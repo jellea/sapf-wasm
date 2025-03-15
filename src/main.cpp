@@ -18,7 +18,7 @@
 #include <stdio.h>
 // TODO: Is this even needed in this file?
 #if USE_LIBEDIT
-#include <histedit.h>
+	#include <histedit.h>
 #endif
 #include <algorithm>
 #include <sys/stat.h>
@@ -193,13 +193,13 @@ int main (int argc, const char * argv[])
 	vm.log_file = getenv("SAPF_LOG");
 	if (!vm.log_file) {
 		#ifdef _WIN32
-		const char* home_dir = getenv("USERPROFILE");
-		char logfilename[PATH_MAX];
-		snprintf(logfilename, PATH_MAX, "%s\\sapf-log.txt", home_dir);
+			const char* home_dir = getenv("USERPROFILE");
+			char logfilename[PATH_MAX];
+			snprintf(logfilename, PATH_MAX, "%s\\sapf-log.txt", home_dir);
 		#else
-		const char* home_dir = getenv("HOME");
-		char logfilename[PATH_MAX];
-		snprintf(logfilename, PATH_MAX, "%s/sapf-log.txt", home_dir);
+			const char* home_dir = getenv("HOME");
+			char logfilename[PATH_MAX];
+			snprintf(logfilename, PATH_MAX, "%s/sapf-log.txt", home_dir);
 		#endif
 		vm.log_file = strdup(logfilename);
 	}

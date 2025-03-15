@@ -765,12 +765,12 @@ DEFINE_UNOP_BOOL_INT(isspace, isspace((int)a))
 DEFINE_UNOP_BOOL_INT(isupper, isupper((int)a))
 DEFINE_UNOP_BOOL_INT(isxdigit, isxdigit((int)a))
 #ifdef _WIN32
-#pragma push_macro("isascii")
-#undef isascii
-DEFINE_UNOP_BOOL_INT(isascii, __isascii((int)a))
-#pragma pop_macro("isascii")
+	#pragma push_macro("isascii")
+	#undef isascii
+	DEFINE_UNOP_BOOL_INT(isascii, __isascii((int)a))
+	#pragma pop_macro("isascii")
 #else
-DEFINE_UNOP_BOOL_INT(isascii, isascii((int)a))
+	DEFINE_UNOP_BOOL_INT(isascii, isascii((int)a))
 #endif
 
 
@@ -809,12 +809,12 @@ DEFINE_UNOP_INT(tolower, tolower((int)a))
 DEFINE_UNOP_INT(toupper, toupper((int)a))
 // under mingw64, "toascii" is actually a #define for __toascii, so the macro doesn't do what's desired 
 #ifdef _WIN32
-#pragma push_macro("toascii")
-#undef toascii
-DEFINE_UNOP_BOOL_INT(toascii, __toascii((int)a))
-#pragma pop_macro("toascii")
+	#pragma push_macro("toascii")
+	#undef toascii
+	DEFINE_UNOP_BOOL_INT(toascii, __toascii((int)a))
+	#pragma pop_macro("toascii")
 #else
-DEFINE_UNOP_BOOL_INT(toascii, toascii((int)a))
+	DEFINE_UNOP_BOOL_INT(toascii, toascii((int)a))
 #endif
 
 DEFINE_UNOP_FLOATVV2(frac, a - floor(a), vvfloor(out, aa, &n); vDSP_vsubD(out, 1, aa, astride, out, 1, n))
@@ -867,15 +867,15 @@ DEFINE_UNOP_FLOATVV(acosh, acosh(a), vvacosh)
 DEFINE_UNOP_FLOATVV(atanh, atanh(a), vvatanh)
 
 #ifdef _WIN32
-DEFINE_UNOP_FLOAT(J0, _j0(a))
-DEFINE_UNOP_FLOAT(J1, _j1(a))
-DEFINE_UNOP_FLOAT(Y0, _y0(a))
-DEFINE_UNOP_FLOAT(Y1, _y1(a))
+	DEFINE_UNOP_FLOAT(J0, _j0(a))
+	DEFINE_UNOP_FLOAT(J1, _j1(a))
+	DEFINE_UNOP_FLOAT(Y0, _y0(a))
+	DEFINE_UNOP_FLOAT(Y1, _y1(a))
 #else
-DEFINE_UNOP_FLOAT(J0, j0(a))
-DEFINE_UNOP_FLOAT(J1, j1(a))
-DEFINE_UNOP_FLOAT(Y0, y0(a))
-DEFINE_UNOP_FLOAT(Y1, y1(a))
+	DEFINE_UNOP_FLOAT(J0, j0(a))
+	DEFINE_UNOP_FLOAT(J1, j1(a))
+	DEFINE_UNOP_FLOAT(Y0, y0(a))
+	DEFINE_UNOP_FLOAT(Y1, y1(a))
 #endif
 
 DEFINE_UNOP_FLOAT(tgamma, tgamma(a))
@@ -1318,11 +1318,11 @@ DEFINE_BINOP_FLOATVV1(pow, sc_pow(a, b), vvpow(out, bb, aa, &n))
 DEFINE_BINOP_FLOATVV1(atan2, atan2(a, b), vvatan2(out, aa, bb, &n))
 
 #ifdef _WIN32
-DEFINE_BINOP_FLOAT(Jn, _jn((int)b, a))
-DEFINE_BINOP_FLOAT(Yn, _yn((int)b, a))
+	DEFINE_BINOP_FLOAT(Jn, _jn((int)b, a))
+	DEFINE_BINOP_FLOAT(Yn, _yn((int)b, a))
 #else
-DEFINE_BINOP_FLOAT(Jn, jn((int)b, a))
-DEFINE_BINOP_FLOAT(Yn, yn((int)b, a))
+	DEFINE_BINOP_FLOAT(Jn, jn((int)b, a))
+	DEFINE_BINOP_FLOAT(Yn, yn((int)b, a))
 #endif
 
 
@@ -1405,24 +1405,24 @@ void AddMathOps()
 	DEF(isupper, "return whether an ASCII value is upper case.")
 	DEF(isxdigit, "return whether an ASCII value is a hexadecimal digit.")
 	#ifdef _WIN32
-	#pragma push_macro("isascii")
-	#undef isascii
-	DEF(isascii, "return whether a value is ASCII")
-	#pragma pop_macro("isascii")
+		#pragma push_macro("isascii")
+		#undef isascii
+		DEF(isascii, "return whether a value is ASCII")
+		#pragma pop_macro("isascii")
 	#else
-	DEF(isascii, "return whether a value is ASCII")
+		DEF(isascii, "return whether a value is ASCII")
 	#endif
 	
 
 	DEF(tolower, "convert an ASCII character value to lower case.")
 	DEF(toupper, "convert an ASCII character value to upper case.")
 	#ifdef _WIN32
-	#pragma push_macro("toascii")
-	#undef toascii
-	DEF(toascii, "convert a value to ASCII by stripping the upper bits.")
-	#pragma pop_macro("toascii")
+		#pragma push_macro("toascii")
+		#undef toascii
+		DEF(toascii, "convert a value to ASCII by stripping the upper bits.")
+		#pragma pop_macro("toascii")
 	#else
-	DEF(toascii, "convert a value to ASCII by stripping the upper bits.")
+		DEF(toascii, "convert a value to ASCII by stripping the upper bits.")
 	#endif
 
 	DEFN(nonpos, "0<=", "less than or equal to zero.")

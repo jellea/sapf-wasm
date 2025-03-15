@@ -26,10 +26,10 @@
 #include <atomic>
 
 #if USE_LIBEDIT
-#include <histedit.h>
+	#include <histedit.h>
 #else
-#include <readline/history.h>
-#include <readline/readline.h>
+	#include <readline/history.h>
+	#include <readline/readline.h>
 #endif
 
 extern pthread_mutex_t gHelpMutex;
