@@ -95,10 +95,11 @@ a version string. You can also confirm with `where gcc` that it's using the bina
 1. Open a cpp file to make sure the extensions activate.
 1. You should now have intellisense working (you should be able to "Go to definition" and "find references, etc...").
 1. You can now build using the Meson build task instead of msys2 shell if you prefer.
-1. You can debug by opening up main.cpp and selecting the "Attach (sapf)" configuration (bottom left), manually
+1. You can debug via selecting the "Attach (sapf)" configuration (bottom left), manually
 running sapf.exe, and then presing F5 and attaching to the sapf.exe process. (Currently haven't figured out
 how to get the "launch" version working - it runs but the text is garbled - likely an encoding issue).
-    - IDK why but it seems like you have to actually have main.cpp open in order for it to succeed in attaching.
+    - If it times out waiting to attach, try restarting VSCode and maybe also
+    closing any msys2 shells if you have any open (not sure what's going on here)?
 
 
 

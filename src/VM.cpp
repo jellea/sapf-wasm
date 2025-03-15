@@ -235,14 +235,6 @@ static char *line_read = (char *)NULL;
    // TODO: instead of copying and allocing here, modify the logic on the CONSUMING end to account for no \n on win32
 char *rl_gets()
 {
-	/* If the buffer has already been allocated,
-		return the memory to the free pool. */
-	// if (line_read)
-	// {
-	// 	free(line_read);
-	// 	line_read = (char *)NULL;
-	// }
-
 	/* Get a line from the user. */
 	line_read = readline(rl_prompt);
 
@@ -255,7 +247,6 @@ char *rl_gets()
 	// Unlike libedit, readline omits the newline, but I think we don't
 	// want that to go in the history - only in the return value...
 	// Allocate space for input + newline + null terminator
-	// TODO: this can't be the best way to do this
 	size_t len = strlen(line_read);
 	char* modified = (char*)malloc(len + 2); // +1 for '\n', +1 for '\0'
 	strcpy(modified, line_read);
@@ -270,7 +261,6 @@ char *rl_gets()
 
 void Thread::getLine()
 {	
-	post("getting line\n");
 	if (fromString) return;
 	#if USE_LIBEDIT
 	switch (parsingWhat) {
@@ -398,7 +388,7 @@ void Thread::repl(FILE* infile, const char* inLogfilename)
 #else
 	// disable the default tab autocomplete
 	rl_bind_key ('\t', rl_insert);
-	// TODO: Could install custom completers
+	// TODO: Could install custom completers for autocomplete
 	rl_set_prompt(prompt());
 	// it should default to "emacs" mode already
 

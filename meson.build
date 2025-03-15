@@ -44,12 +44,9 @@ link_args = []
 
 # libedit
 if host_machine.system() == 'windows'
-    # TODO: Not sure if we need both or if these are valid substitutes
     deps += dependency('readline', required: true)
     deps += dependency('history', required: true)
     cpp_args += ['-DUSE_LIBEDIT=0', '-D_POSIX_THREAD_SAFE_FUNCTIONS']
-    # TODO: needed?
-    #link_args += ['-lrtaudio']
 else
   deps += dependency('libedit', required: true)
     cpp_args += ['-DUSE_LIBEDIT=1']
@@ -79,7 +76,6 @@ if get_option('audiotoolbox')
   add_project_arguments('-DSAPF_AUDIOTOOLBOX', language: 'cpp')
 else
   deps += dependency('rtaudio', required: true, version: '>=5.2')
-  #TODO: check is not working on windows/mingw
   if not cpp.has_header('RtAudio.h') and cpp.has_header('rtaudio/RtAudio.h')
     add_project_arguments('-DSAPF_RTAUDIO_H=<rtaudio/RtAudio.h>', language: 'cpp')
   endif

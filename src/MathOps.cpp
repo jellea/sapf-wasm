@@ -767,7 +767,6 @@ DEFINE_UNOP_BOOL_INT(isxdigit, isxdigit((int)a))
 #ifdef _WIN32
 #pragma push_macro("isascii")
 #undef isascii
-// TODO: Not sure if this causes linker issue?
 DEFINE_UNOP_BOOL_INT(isascii, __isascii((int)a))
 #pragma pop_macro("isascii")
 #else
