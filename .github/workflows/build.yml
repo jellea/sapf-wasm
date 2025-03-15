@@ -39,33 +39,33 @@ jobs:
         with:
           name: meson-build-log-${{ runner.os }}.txt
           path: build/meson-logs/meson-log.tx
-  # build:
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       os: [macos-latest, ubuntu-latest]
-  #   runs-on: ${{ matrix.os }}
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
 
-  #   steps:
-  #   - uses: actions/checkout@v4
+    steps:
+    - uses: actions/checkout@v4
 
-  #   - name: Install Linux Dependencies
-  #     if: runner.os == 'Linux'
-  #     run: .github/scripts/install-debian-deps.sh
+    - name: Install Linux Dependencies
+      if: runner.os == 'Linux'
+      run: .github/scripts/install-debian-deps.sh
 
-  #   - name: Install macOS Dependencies
-  #     if: runner.os == 'macOS'
-  #     run: .github/scripts/install-macos-deps.sh
+    - name: Install macOS Dependencies
+      if: runner.os == 'macOS'
+      run: .github/scripts/install-macos-deps.sh
 
-  #   - name: Setup
-  #     run: meson setup build
+    - name: Setup
+      run: meson setup build
 
-  #   - name: Compile
-  #     run: meson compile -C build
+    - name: Compile
+      run: meson compile -C build
 
-  #   - name: Save Build Log Artifact
-  #     if: ${{ always() }}
-  #     uses: actions/upload-artifact@v4
-  #     with:
-  #       name: meson-build-log-${{ runner.os }}.txt
-  #       path: build/meson-logs/meson-log.txt
+    - name: Save Build Log Artifact
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: meson-build-log-${{ runner.os }}.txt
+        path: build/meson-logs/meson-log.txt
