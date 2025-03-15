@@ -17,6 +17,7 @@
 #ifndef __MathFuns_h__
 #define __MathFuns_h__
 
+#define _USE_MATH_DEFINES
 #include <cmath>
 #include <stdint.h>
 #include <stdio.h>

@@ -24,3 +24,5 @@ xcshareddata/
 *.xccheckout
 *.moved-aside
 *.xcuserstate
+.vscode/
+build.txt

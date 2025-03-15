@@ -25,10 +25,11 @@
 #include <sys/time.h>
 #include <atomic>
 
-#define USE_LIBEDIT 1
-
 #if USE_LIBEDIT
 #include <histedit.h>
+#else
+#include <readline/history.h>
+#include <readline/readline.h>
 #endif
 
 extern pthread_mutex_t gHelpMutex;
@@ -162,8 +163,8 @@ public:
 	EditLine *el;
 	History *myhistory;
 	HistEvent ev;
-	char historyfilename[PATH_MAX];
 #endif
+	char historyfilename[PATH_MAX];
 	const char *line;
 	int linelen;
 	int linepos;

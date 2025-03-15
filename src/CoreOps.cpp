@@ -1313,6 +1313,7 @@ static void zplug_(Thread& th, Prim* prim)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef _WIN32
 #pragma mark GLOB
 
 #include <glob.h>
@@ -1341,6 +1342,33 @@ static void glob_(Thread& th, Prim* prim)
 	
 	th.push(new List(a));
 }
+#else
+#include <windows.h>
+#include <vector>
+#include <iostream>
+
+// TODO: not sure if this works as good a the non-windows one...
+static void glob_(Thread& th, Prim* prim) {
+	P<String> pat = th.popString("glob : pattern");
+
+	std::vector<std::string> results;
+	WIN32_FIND_DATA findFileData;
+	HANDLE hFind = FindFirstFile(pat.get()->cstr(), &findFileData);
+
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do {
+			results.push_back(findFileData.cFileName);
+		} while (FindNextFile(hFind, &findFileData) != 0);
+		FindClose(hFind);
+	}
+
+	P<Array> a = new Array(itemTypeV, results.size());
+	for (int i = 0; i < results.size(); ++i) {
+		a->add(new String(results[i].c_str()));
+	}
+	th.push(new List(a));
+}
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 

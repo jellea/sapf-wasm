@@ -5568,7 +5568,6 @@ static void deinterleave(int numChans, int numFrames, float* in, double** out)
 
 static const size_t gSessionTimeMaxLen = 256;
 char gSessionTime[gSessionTimeMaxLen];
-
 #include <time.h>
 
 static void setSessionTime()

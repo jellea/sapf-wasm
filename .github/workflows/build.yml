@@ -7,33 +7,65 @@ on:
     branches: [ "main" ]
     
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, ubuntu-latest]
-    runs-on: ${{ matrix.os }}
-
+  msys2-ucrt64:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            base-devel 
+            mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-meson
+            mingw-w64-ucrt-x86_64-clang
+            mingw-w64-ucrt-x86_64-fftw
+            mingw-w64-ucrt-x86_64-libsndfile
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-rtaudio
+            mingw-w64-ucrt-x86_64-readline
+      - name: CI-Build
+        run: |
+          echo 'Running in MSYS2!'
+          meson setup -native-file clang.ini build
+          meson compile -C build
+      - name: Save Build Log Artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: meson-build-log-${{ runner.os }}.txt
+          path: build/meson-logs/meson-log.tx
+  # build:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [macos-latest, ubuntu-latest]
+  #   runs-on: ${{ matrix.os }}
 
-    - name: Install Linux Dependencies
-      if: runner.os == 'Linux'
-      run: .github/scripts/install-debian-deps.sh
+  #   steps:
+  #   - uses: actions/checkout@v4
 
-    - name: Install macOS Dependencies
-      if: runner.os == 'macOS'
-      run: .github/scripts/install-macos-deps.sh
+  #   - name: Install Linux Dependencies
+  #     if: runner.os == 'Linux'
+  #     run: .github/scripts/install-debian-deps.sh
 
-    - name: Setup
-      run: meson setup build
+  #   - name: Install macOS Dependencies
+  #     if: runner.os == 'macOS'
+  #     run: .github/scripts/install-macos-deps.sh
 
-    - name: Compile
-      run: meson compile -C build
+  #   - name: Setup
+  #     run: meson setup build
 
-    - name: Save Build Log Artifact
-      if: ${{ always() }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: meson-build-log-${{ runner.os }}.txt
-        path: build/meson-logs/meson-log.txt
+  #   - name: Compile
+  #     run: meson compile -C build
+
+  #   - name: Save Build Log Artifact
+  #     if: ${{ always() }}
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: meson-build-log-${{ runner.os }}.txt
+  #       path: build/meson-logs/meson-log.txt

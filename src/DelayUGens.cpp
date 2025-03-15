@@ -1548,7 +1548,11 @@ public:
 		Z interval = pow(ratio, 1. / (kNumDelays - 1.));
 		int prevSampleDelay = 0;
 		for (int i = 0; i < kNumDelays; ++i) {
+			#ifdef _WIN32
+			double expon = (rand() / 2147483647. - .5) * 0.8;
+			#else
 			double expon = (random() / 2147483647. - .5) * 0.8;
+			#endif
 			double deviation = pow(interval,  expon);
 			mDelay[i].set(th, *this, delay * deviation, prevSampleDelay);
 			delay *= interval;
