@@ -34,6 +34,7 @@ Windows support is currently WIP. The following current "quirks" apply:
 
 - It will use ASIO and will use the "first" enabled ASIO device, which may not be what you want. Opening the ASIO4ALL panel (in the taskbar tray) and disabling
     all inputs other than your preferred input, then restarting SAPF, should allow it to switch.
+- History loading from previous sessions isn't working.
 - When pasting in multiline strings, they should work. Just note that many built-in Windows terminals by default will strip out certain characters like tabs,
     ruining your beautiful formatting. This can be changed in the terminal's settings.
 
