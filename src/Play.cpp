@@ -162,8 +162,16 @@ int rtPlayerBackendCallback(
 
 class RtPlayerBackend {
 public:
+	// without this, it defaults to ASIO which will be often ASIO4ALL, which won't respect
+	// the OS-level "default output" setting - so defaulting to WASAPI allows us to have a more sensible default
+	// since ultra low latency isn't super important when initially using it
 	RtPlayerBackend(int inNumChannels)
+	#ifdef _WIN32
+		: player(nullptr), numChannels(inNumChannels), audio(RtAudio::WINDOWS_WASAPI)
+	#else
 		: player(nullptr), numChannels(inNumChannels)
+	#endif
+
 	{}
 	
 	int32_t createGraph() {
