@@ -32,8 +32,7 @@ for installing dependencies, you can refer to the CI scripts in this repo:
 
 Windows support is currently WIP. The following current "quirks" apply:
 
-- It will use ASIO and will use the "first" enabled ASIO device, which may not be what you want. Opening the ASIO4ALL panel (in the taskbar tray) and disabling
-    all inputs other than your preferred input, then restarting SAPF, should allow it to switch.
+- It will default to WASAPI and use your primary output device. Ability to select different devices or audio drivers (ASIO, etc..) is not yet supported.
 - When pasting in multiline strings, they should work. Just note that many built-in Windows terminals by default will strip out certain characters like tabs,
     ruining your beautiful formatting. This can be changed in the terminal's settings.
 
@@ -80,11 +79,8 @@ Navigate to the root directory of this repo.
 and copy all of the dlls that look like `lib*.dll` (i.e. libreadline8.dll, libogg-0.dll, etc...). This is
 more than needed but I'm not sure the exact subset of dlls needed yet.
 1. Now you can run the exe directly by clicking or via your preferred command prompt.
-1. Test if its all working with a simple command (you should hear audio)
+1. Test if its all working with a simple command (you should hear audio out of your primary output device)
 `15 .0 sinosc 200 * 300 + .0 sinosc .1 * play`
-1. If you didn't hear anything check if ASIO4ALL launched (in the taskbar icons) and
-open it up and enable your preferred output device. Then restart sapf. 
-    - We plan to eventually make it possible to select an audio device, which is kind of necessary for Windows but not so much for other systems.
 
 ### Windows VSCode Development Setup
 Since it's not exactly straightforward to get everything working nicely in VSCode under Windows, here's 
