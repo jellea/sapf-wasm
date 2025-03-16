@@ -232,7 +232,6 @@ static const char* promptString()
 
 	/* Read a string, and return a pointer to it.
 	Returns NULL on EOF. */
-	// TODO: instead of copying and allocing here, modify the logic on the CONSUMING end to account for no \n on win32
 	char *rl_gets()
 	{
 		/* Get a line from the user. */
@@ -254,7 +253,6 @@ static const char* promptString()
 		modified[len + 1] = '\0'; // Null-terminate
 		free(line_read);
 		line_read = modified;
-		free(modified);
 		return (line_read);
 	}
 #endif

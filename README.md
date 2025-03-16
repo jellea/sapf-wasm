@@ -83,7 +83,7 @@ more than needed but I'm not sure the exact subset of dlls needed yet.
 `15 .0 sinosc 200 * 300 + .0 sinosc .1 * play`
 1. If you didn't hear anything check if ASIO4ALL launched (in the taskbar icons) and
 open it up and enable your preferred output device. Then restart sapf. 
-    - We want to make it possible to select an audio device, which is kind of necessary for Windows but not so much for other systems.
+    - We plan to eventually make it possible to select an audio device, which is kind of necessary for Windows but not so much for other systems.
 
 ### Windows VSCode Development Setup
 Since it's not exactly straightforward to get everything working nicely in VSCode under Windows, here's 
@@ -223,9 +223,3 @@ Example `.vscode/tasks.json`
 	]
 }
 ```
-
-### Windows Troubleshooting
-
-#### Audio still plays after exiting
-This is a known issue when using ASIO4ALL. Working on it! You have to manually end sapf.exe via task
-manager.
