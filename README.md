@@ -28,7 +28,15 @@ for installing dependencies, you can refer to the CI scripts in this repo:
 - [install-debian-deps.sh](.github/scripts/install-debian-deps.sh) (Debian, Ubuntu, Mint, etc.)
 - [install-macos-deps.sh](.github/scripts/install-macos-deps.sh) (macOS with Homebrew)
 
-## Windows
+## Windows Usage Caveats
+
+Windows support is currently WIP. The following current limitations apply:
+
+- In order to paste multiline contents, you should make sure the line ending is LF only (not Windows-style CRLF). CRLF pasting isn't working right currently.
+- It will use ASIO and will use the "first" enabled ASIO device, which may not be what you want. Opening the ASIO4ALL panel (in the taskbar tray) and disabling
+    all inputs other than your preferred input, then restarting SAPF, should allow it to switch.
+
+## Windows Build + Development
 
 (I'm new to this toolchain so some things may be wrong)
 
