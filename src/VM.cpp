@@ -296,7 +296,6 @@ void Thread::getLine()
 		linepos = 0;
 		if (strncmp(line, "quit", 4)==0 || strncmp(line, "..", 2)==0) { line = NULL; throw errUserQuit; }
 		if (line && linelen) {
-			// TODO: seemingly not working (save / load)
 			write_history(historyfilename);
 			if (logfilename) {
 				FILE* logfile = fopen(logfilename, "a");
@@ -401,8 +400,8 @@ void Thread::repl(FILE* infile, const char* inLogfilename)
 	if (envHistoryFileName) {
 		snprintf(historyfilename, PATH_MAX, "%s", envHistoryFileName);
 	} else {
-		const char* homeDir = getenv("HOME");
-		snprintf(historyfilename, PATH_MAX, "%s/sapf-history.txt", homeDir);
+		const char* homeDir = getenv("USERPROFILE");
+		snprintf(historyfilename, PATH_MAX, "%s\\sapf-history.txt", homeDir);
 	}
 	stifle_history(800);
 	read_history(historyfilename);
