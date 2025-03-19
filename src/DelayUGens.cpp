@@ -1560,12 +1560,11 @@ public:
 		for (int i = 0; i < kNumDelays; ++i) {
 			#ifdef _WIN32
 			// this should match the range returned by random() - [0, 2147483647]
-			int random = dist_(gen_);
-			printf("rand %d", random);
+			int random_int = dist_(gen_);
 			#else
-			int random = random();
+			int random_int = random();
 			#endif
-			double expon = (random / 2147483647. - .5) * 0.8;
+			double expon = (random_int / 2147483647. - .5) * 0.8;
 			double deviation = pow(interval,  expon);
 			mDelay[i].set(th, *this, delay * deviation, prevSampleDelay);
 			delay *= interval;
