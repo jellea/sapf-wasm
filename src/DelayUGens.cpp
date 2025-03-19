@@ -25,7 +25,9 @@
 #include <stdint.h>
 #include <vector>
 #include <algorithm>
-
+#ifdef _WIN32
+#include <random>
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1474,6 +1476,11 @@ class FDN : public Object
 	Z mindelay_;
 	Z maxdelay_;
 	Z sr_;
+	#ifdef _WIN32
+	std::mt19937 gen_;
+	std::uniform_int_distribution<int> dist_;
+	#endif
+
 	
 	Z a1Lo, a1Hi;
 	Z scaleLoLPF, scaleLoHPF, scaleHiLPF, scaleHiHPF;
@@ -1533,6 +1540,9 @@ public:
 		: in_(in), wet_(wet),
 		decayLo_(decayLo), decayMid_(decayMid), decayHi_(decayHi),
 		mindelay_(mindelay), maxdelay_(maxdelay)
+		#ifdef _WIN32
+		, dist_(0, 2147483647), gen_(std::random_device()())
+		#endif
 	{
 		sr_ = th.rate.sampleRate;
 		Z freqmul = th.rate.invNyquistRate * kFirstOrderCoeffScale;
@@ -1549,10 +1559,13 @@ public:
 		int prevSampleDelay = 0;
 		for (int i = 0; i < kNumDelays; ++i) {
 			#ifdef _WIN32
-				double expon = (rand() / 2147483647. - .5) * 0.8;
+			// this should match the range returned by random() - [0, 2147483647]
+			int random = dist_(gen_);
+			printf("rand %d", random);
 			#else
-				double expon = (random() / 2147483647. - .5) * 0.8;
+			int random = random();
 			#endif
+			double expon = (random / 2147483647. - .5) * 0.8;
 			double deviation = pow(interval,  expon);
 			mDelay[i].set(th, *this, delay * deviation, prevSampleDelay);
 			delay *= interval;
