@@ -194,13 +194,11 @@ int main (int argc, const char * argv[])
 	if (!vm.log_file) {
 		#ifdef _WIN32
 			const char* home_dir = getenv("USERPROFILE");
-			char logfilename[PATH_MAX];
-			snprintf(logfilename, PATH_MAX, "%s\\sapf-log.txt", home_dir);
 		#else
 			const char* home_dir = getenv("HOME");
-			char logfilename[PATH_MAX];
-			snprintf(logfilename, PATH_MAX, "%s/sapf-log.txt", home_dir);
 		#endif
+		char logfilename[PATH_MAX];
+		snprintf(logfilename, PATH_MAX, "%s/sapf-log.txt", home_dir);
 		vm.log_file = strdup(logfilename);
 	}
 
