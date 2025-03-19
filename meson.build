@@ -60,12 +60,7 @@ endif
 if get_option('accelerate')
   add_project_arguments('-DSAPF_ACCELERATE', language: 'cpp')
 else
-  if host_machine.system() == 'windows'
-    deps += dependency('fftw3', required: true, version: '>=3')
-  else
-    deps += dependency('fftw3', required: true, version: '>=3')
-  endif
-
+  deps += dependency('fftw3', required: true, version: '>=3')
 endif
 
 if get_option('apple_lock')

@@ -25,5 +25,3 @@ xcshareddata/
 *.moved-aside
 *.xcuserstate
 .vscode/
-build.txt
-sapf-examples-windows.txt
