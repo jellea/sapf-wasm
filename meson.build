@@ -14,7 +14,6 @@ sources = [
   'src/elapsedTime.cpp',
   'src/ErrorCodes.cpp',
   'src/FilterUGens.cpp',
-  'src/main.cpp',
   'src/MathFuns.cpp',
   'src/MathOps.cpp',
   'src/Midi.cpp',
@@ -61,6 +60,7 @@ if get_option('accelerate')
   add_project_arguments('-DSAPF_ACCELERATE', language: 'cpp')
 else
   deps += dependency('fftw3', required: true, version: '>=3')
+  deps += dependency('eigen3', required: true)
 endif
 
 if get_option('apple_lock')
@@ -112,11 +112,95 @@ if get_option('manta')
   add_project_arguments('-DSAPF_MANTA', language: 'cpp')
 endif
 
+# main should only be in release build because otherwise it conflicts with the main
+# method added by doctest in test builds
+release_sources = sources + 'src/main.cpp'
+
+# build targeting the native system this was built on. If buildtype is debug,
+# no target architecture will be specified, to ensure the best debugging experience.
 executable(
   'sapf',
-  sources,
+  release_sources,
   include_directories: [include_directories('include')],
   dependencies: deps,
-  cpp_args : cpp_args,
+  cpp_args : cpp_args + (get_option('buildtype').startswith('debug') ? [] : ['-march=native']),
   link_args : link_args
 )
+
+# The below builds target specific architectures. Because this program uses
+# SIMD, the best performance is achieved when a user uses the most recent architecture supported
+# by their CPU. However, users will get the best results (even better performance) if they build the
+# library themselves (target `sapf` above with `--buildtype release`)
+
+# should have maximum compatibility with ancient x86_64 cpus
+executable(
+  'sapf_x86_64',
+  release_sources,
+  include_directories: [include_directories('include')],
+  dependencies: deps,
+  cpp_args : cpp_args + ['-march==x86-64'],
+  link_args : link_args,
+  build_by_default: false
+)
+
+# for somewhat older x86 CPUs (2008ish)
+executable(
+  'sapf_x86_64_v2',
+  release_sources,
+  include_directories: [include_directories('include')],
+  dependencies: deps,
+  cpp_args : cpp_args + ['-march=x86-64-v2'],
+  link_args : link_args,
+  build_by_default: false
+)
+
+# for more cutting edge x86 cpus
+executable(
+  'sapf_x86_64_v3',
+  release_sources,
+  include_directories: [include_directories('include')],
+  dependencies: deps,
+  cpp_args : cpp_args + ['-march=x86-64-v3'],
+  link_args : link_args,
+  build_by_default: false
+)
+
+# support M1 chip and newer
+executable(
+  'sapf_arm_m1',
+  release_sources,
+  include_directories: [include_directories('include')],
+  dependencies: deps,
+  cpp_args : cpp_args + ['-march=armv8.4-a', '-mcpu=apple-m1'],
+  link_args : link_args,
+  build_by_default: false
+)
+
+# support M3 chip
+executable(
+  'sapf_arm_m3',
+  release_sources,
+  include_directories: [include_directories('include')],
+  dependencies: deps,
+  cpp_args : cpp_args + ['-march=armv8.5-a', '-mcpu=apple-m3'],
+  link_args : link_args,
+  build_by_default: false
+)
+
+# tests
+test_deps = deps + dependency('doctest', required: true)
+test_sources = sources + 'test/test_MathOps.cpp'
+
+# Just like the main executable, this respects the buildtype param. The target architecture is
+# omitted if it's a debug build, ensuring the best debugging experience
+test_sapf = executable(
+  'test_sapf',
+  test_sources,
+  include_directories: [include_directories('include')],
+  dependencies: test_deps,
+  cpp_args :  cpp_args + (get_option('buildtype').startswith('debug') ? [] : ['-march=native']),
+  link_args : link_args,
+  build_by_default: false
+)
+
+test('all', test_sapf)

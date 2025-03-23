@@ -25,3 +25,5 @@ xcshareddata/
 *.moved-aside
 *.xcuserstate
 .vscode/
+.idea/
+subprojects/*/
