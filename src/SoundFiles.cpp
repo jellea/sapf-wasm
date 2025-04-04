@@ -201,11 +201,31 @@ void makeRecordingPath(Arg filename, char* path, int len)
 {
 	if (filename.isString()) {
 		const char* recDir = getenv("SAPF_RECORDINGS");
-		if (!recDir || strlen(recDir)==0) recDir = "/tmp";
+		if (!recDir || strlen(recDir)==0) {
+			#ifdef _WIN32
+				recDir = getenv("TEMP");
+				if (!recDir || strlen(recDir)==0)
+					recDir = getenv("TMP");
+			#else
+				recDir = "/tmp";
+			#endif
+			if (!recDir || strlen(recDir)==0)
+				recDir = ".";
+		}
 		snprintf(path, len, "%s/%s.wav", recDir, ((String*)filename.o())->s);
 	} else {
 		int32_t count = ++gFileCount;
-		snprintf(path, len, "/tmp/sapf-%s-%04d.wav", gSessionTime, count);
+		#ifdef _WIN32
+			const char* tempDir = getenv("TEMP");
+			if (!tempDir || strlen(tempDir)==0)
+				tempDir = getenv("TMP");
+			if (!tempDir || strlen(tempDir)==0)
+				tempDir = ".";
+			snprintf(path, len, "%s\\sapf-%s-%04d.wav", tempDir, gSessionTime, count);
+		#else
+			snprintf(path, len, "/tmp/sapf-%s-%04d.wav", gSessionTime, count);
+		#endif
+
 	}
 }
 
