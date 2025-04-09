@@ -194,6 +194,7 @@ test_deps = deps + dependency('doctest', required: true)
 test_sources = sources + [
     'test/test_MathOps.cpp',
     'test/test_AsyncAudioFileWriter.cpp',
+    'test/test_SndfileSoundFile.cpp',
 ]
 
 # Just like the main executable, this respects the buildtype param. The target architecture is

@@ -296,15 +296,13 @@ void sfwrite(Thread& th, V& v, Arg filename, bool openIt)
 		// TODO: move into a SoundFile method
 #ifdef SAPF_AUDIOTOOLBOX
 		OSStatus err = ExtAudioFileWrite(soundFile->mXAF, minn, bufs.abl);
-#else
-		// TODO: implement writing - needs sample rate conversion too
-		int err = 666;
-#endif // SAPF_AUDIOTOOLBOX
 		if (err) {
 			post("file writing failed %d\n", (int)err);
 			break;
 		}
-
+#else
+		soundFile->write(minn, bufs);
+#endif // SAPF_AUDIOTOOLBOX
 		framesWritten += minn;
 	}
 	
@@ -314,7 +312,11 @@ void sfwrite(Thread& th, V& v, Arg filename, bool openIt)
 	
 	if (openIt) {
 		char cmd[1100];
-		snprintf(cmd, 1100, "open \"%s\"", path);
+		#ifdef _WIN32
+			snprintf(cmd, 1100, "start \"\" \"%s\"", path);
+		#else
+			snprintf(cmd, 1100, "open \"%s\"", path);
+		#endif
 		system(cmd);
 	}
 }
