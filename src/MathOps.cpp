@@ -436,24 +436,41 @@ static void DoIReduce(Thread& th, BinaryOp* op)
 	UnaryOp* gUnaryOpPtr_##NAME = &gUnaryOp_##NAME; \
 	UNARY_OP_PRIM(NAME)
 #else
-#define DEFINE_UNOP_FLOATVV(NAME, CODE, VVNAME) \
-	struct UnaryOp_##NAME : public UnaryOp { \
-		virtual const char *Name() { return #NAME; } \
-		virtual double op(double a) { return CODE; } \
-		virtual void loopz(int n, const Z *x, int astride, Z *y) { \
-                        LOOP(i,n) { Z a = *x; y[i] = CODE; x += astride; }  \
-		} \
-	}; \
-	UnaryOp_##NAME gUnaryOp_##NAME; \
-	UnaryOp* gUnaryOpPtr_##NAME = &gUnaryOp_##NAME; \
-	UNARY_OP_PRIM(NAME)
+#if SAMPLE_IS_DOUBLE
+	typedef Eigen::Map<Eigen::ArrayXd, 0, Eigen::InnerStride<>> ZArr;
+#else
+	typedef Eigen::Map<Eigen::ArrayXf, 0, Eigen::InnerStride<>> ZArr;
+#endif
 
-#define DEFINE_UNOP_FLOATVV2(NAME, CODE, VVCODE) \
+ZArr zarr(const Z *vec, int n, int stride) {
+	return ZArr((Z *)vec, n, Eigen::InnerStride<>(stride));
+}
+
+#define ZARR_BINOP(op, n, aa, astride, bb, bstride, out) \
+	do { \
+		const ZArr A = zarr(aa, n, astride); \
+		const ZArr B = zarr(bb, n, bstride); \
+		ZArr R = zarr(out, n, 1); \
+		R = op; \
+	} while (0)
+
+#define ZARR_UNOP(op, n, aa, astride, out) \
+	do { \
+		const ZArr A = zarr(aa, n, astride); \
+		ZArr R = zarr(out, n, 1); \
+		R = op; \
+	} while (0)
+
+#define DEFINE_UNOP_FLOATVV(NAME, CODE, OP) \
 	struct UnaryOp_##NAME : public UnaryOp { \
 		virtual const char *Name() { return #NAME; } \
 		virtual double op(double a) { return CODE; } \
 		virtual void loopz(int n, const Z *aa, int astride, Z *out) { \
-			LOOP(i,n) { Z a = *aa; out[i] = CODE; aa += astride; } \
+			if (astride == 1) { \
+				ZARR_UNOP(OP, n, aa, astride, out); \
+			} else { \
+				LOOP(i,n) { Z a = *aa; out[i] = CODE; aa += astride; } \
+			} \
 		} \
 	}; \
 	UnaryOp_##NAME gUnaryOp_##NAME; \
@@ -798,14 +815,23 @@ struct UnaryOp_ToZero : public UnaryOp {
 };
 UnaryOp_ToZero gUnaryOp_ToZero; 
 
-DEFINE_UNOP_FLOATVV2(neg, -a, vDSP_vnegD(const_cast<Z*>(aa), astride, out, 1, n))
+#ifdef SAPF_ACCELERATE
+	DEFINE_UNOP_FLOATVV2(neg, -a, vDSP_vnegD(const_cast<Z*>(aa), astride, out, 1, n))
+#else
+	DEFINE_UNOP_FLOATVV(neg, -a, A * -1)
+#endif
+
 DEFINE_UNOP_FLOAT(sgn, sc_sgn(a))
 
-DEFINE_UNOP_FLOATVV(abs, fabs(a), vvfabs)
+#ifdef SAPF_ACCELERATE
+	DEFINE_UNOP_FLOATVV(abs, fabs(a), vvfabs)
+#else
+	DEFINE_UNOP_FLOATVV(abs, fabs(a), A.abs())
+#endif
 
 DEFINE_UNOP_INT(tolower, tolower((int)a))
 DEFINE_UNOP_INT(toupper, toupper((int)a))
-// under mingw64, "toascii" is actually a #define for __toascii, so the macro doesn't do what's desired
+// under mingw64, "toascii" is actually a #define for __toascii, so the macro doesn't do what's desired 
 #ifdef _WIN32
 	#pragma push_macro("toascii")
 	#undef toascii
@@ -815,20 +841,36 @@ DEFINE_UNOP_INT(toupper, toupper((int)a))
 	DEFINE_UNOP_BOOL_INT(toascii, toascii((int)a))
 #endif
 
-DEFINE_UNOP_FLOATVV2(frac, a - floor(a), vvfloor(out, aa, &n); vDSP_vsubD(out, 1, aa, astride, out, 1, n))
-DEFINE_UNOP_FLOATVV(floor, floor(a), vvfloor)
-DEFINE_UNOP_FLOATVV(ceil, ceil(a), vvceil)
-DEFINE_UNOP_FLOATVV(rint, rint(a), vvnint)
+#ifdef SAPF_ACCELERATE
+	DEFINE_UNOP_FLOATVV2(frac, a - floor(a), vvfloor(out, aa, &n); vDSP_vsubD(out, 1, aa, astride, out, 1, n))
+	DEFINE_UNOP_FLOATVV(floor, floor(a), vvfloor)
+	DEFINE_UNOP_FLOATVV(ceil, ceil(a), vvceil)
+	DEFINE_UNOP_FLOATVV(rint, rint(a), vvnint)
+#else
+	DEFINE_UNOP_FLOATVV(frac, a - floor(a), A - A.floor())
+	DEFINE_UNOP_FLOATVV(floor, floor(a), A.floor())
+	DEFINE_UNOP_FLOATVV(ceil, ceil(a), A.ceil())
+	DEFINE_UNOP_FLOATVV(rint, rint(a), A.round())
+#endif
 
 DEFINE_UNOP_FLOAT(erf, erf(a))
 DEFINE_UNOP_FLOAT(erfc, erfc(a))
 
-DEFINE_UNOP_FLOATVV(recip, 1./a, vvrec)
-DEFINE_UNOP_FLOATVV(sqrt, sc_sqrt(a), vvsqrt)
-DEFINE_UNOP_FLOATVV(rsqrt, 1./sc_sqrt(a), vvrsqrt)
+#ifdef SAPF_ACCELERATE
+	DEFINE_UNOP_FLOATVV(recip, 1./a, vvrec)
+	DEFINE_UNOP_FLOATVV(sqrt, sc_sqrt(a), vvsqrt)
+	DEFINE_UNOP_FLOATVV(rsqrt, 1./sc_sqrt(a), vvrsqrt)
+	DEFINE_UNOP_FLOATVV2(ssq, copysign(a*a, a), vDSP_vssqD(aa, astride, out, 1, n))
+	DEFINE_UNOP_FLOATVV2(sq, a*a, vDSP_vsqD(aa, astride, out, 1, n))
+#else
+	DEFINE_UNOP_FLOATVV(recip, 1./a, 1. / A)
+	DEFINE_UNOP_FLOATVV(sqrt, sc_sqrt(a), A.sqrt())
+	DEFINE_UNOP_FLOATVV(rsqrt, 1./sc_sqrt(a), A.rsqrt())
+	DEFINE_UNOP_FLOATVV(ssq, copysign(a*a, a), A.sign() * A.square())
+	DEFINE_UNOP_FLOATVV(sq, a*a, A.square())
+#endif
 DEFINE_UNOP_FLOAT(cbrt, cbrt(a))
-DEFINE_UNOP_FLOATVV2(ssq, copysign(a*a, a), vDSP_vssqD(aa, astride, out, 1, n))
-DEFINE_UNOP_FLOATVV2(sq, a*a, vDSP_vsqD(aa, astride, out, 1, n))
+
 DEFINE_UNOP_FLOAT(cb, a*a*a)
 DEFINE_UNOP_FLOAT(pow4, sc_fourth(a))
 DEFINE_UNOP_FLOAT(pow5, sc_fifth(a))
@@ -837,32 +879,64 @@ DEFINE_UNOP_FLOAT(pow7, sc_seventh(a))
 DEFINE_UNOP_FLOAT(pow8, sc_eighth(a))
 DEFINE_UNOP_FLOAT(pow9, sc_ninth(a))
 
-DEFINE_UNOP_FLOATVV(exp, exp(a), vvexp)
-DEFINE_UNOP_FLOATVV(exp2, exp2(a), vvexp2)
+#ifdef SAPF_ACCELERATE
+	DEFINE_UNOP_FLOATVV(exp, exp(a), vvexp)
+	DEFINE_UNOP_FLOATVV(exp2, exp2(a), vvexp2)
+	DEFINE_UNOP_FLOATVV(expm1, expm1(a), vvexpm1)
+	DEFINE_UNOP_FLOATVV(log, sc_log(a), vvlog)
+	DEFINE_UNOP_FLOATVV(log2, sc_log2(a), vvlog2)
+	DEFINE_UNOP_FLOATVV(log10, sc_log10(a), vvlog10)
+	DEFINE_UNOP_FLOATVV(log1p, log1p(a), vvlog1p)
+#else
+	DEFINE_UNOP_FLOATVV(exp, exp(a), A.exp())
+	DEFINE_UNOP_FLOATVV(exp2, exp2(a), pow(2,A))
+	DEFINE_UNOP_FLOATVV(expm1, expm1(a), A.exp() - 1)
+	DEFINE_UNOP_FLOATVV(log, sc_log(a), A.log())
+	DEFINE_UNOP_FLOATVV(log2, sc_log2(a), A.log() / sc_log(2.0))
+	DEFINE_UNOP_FLOATVV(log10, sc_log10(a), A.log10())
+	DEFINE_UNOP_FLOATVV(log1p, log1p(a), A.log1p())
+#endif
 DEFINE_UNOP_FLOAT(exp10, pow(10., a))
-DEFINE_UNOP_FLOATVV(expm1, expm1(a), vvexpm1)
-DEFINE_UNOP_FLOATVV(log, sc_log(a), vvlog)
-DEFINE_UNOP_FLOATVV(log2, sc_log2(a), vvlog2)
-DEFINE_UNOP_FLOATVV(log10, sc_log10(a), vvlog10)
-DEFINE_UNOP_FLOATVV(log1p, log1p(a), vvlog1p)
-DEFINE_UNOP_FLOATVV(logb, logb(a), vvlogb)
+
+// TODO: Not vectorized in Eigen - possibly use XSIMD?
+#ifdef SAPF_ACCELERATE
+	DEFINE_UNOP_FLOATVV(logb, logb(a), vvlogb)
+#else
+	DEFINE_UNOP_FLOAT(logb, logb(a))
+#endif
 
 DEFINE_UNOP_FLOAT(sinc, sc_sinc(a))
-
-DEFINE_UNOP_FLOATVV(sin, sin(a), vvsin)
-DEFINE_UNOP_FLOATVV(cos, cos(a), vvcos)
-DEFINE_UNOP_FLOATVV2(sin1, sin(a * kTwoPi), Z b = kTwoPi; vDSP_vsmulD(const_cast<Z*>(aa), astride, &b, out, 1, n); vvsin(out, out, &n))
-DEFINE_UNOP_FLOATVV2(cos1, cos(a * kTwoPi), Z b = kTwoPi; vDSP_vsmulD(const_cast<Z*>(aa), astride, &b, out, 1, n); vvcos(out, out, &n))
-DEFINE_UNOP_FLOATVV(tan, tan(a), vvtan)
-DEFINE_UNOP_FLOATVV(asin, asin(a), vvasin)
-DEFINE_UNOP_FLOATVV(acos, acos(a), vvacos)
-DEFINE_UNOP_FLOATVV(atan, atan(a), vvatan)
-DEFINE_UNOP_FLOATVV(sinh, sinh(a), vvsinh)
-DEFINE_UNOP_FLOATVV(cosh, cosh(a), vvcosh)
-DEFINE_UNOP_FLOATVV(tanh, tanh(a), vvtanh)
-DEFINE_UNOP_FLOATVV(asinh, asinh(a), vvasinh)
-DEFINE_UNOP_FLOATVV(acosh, acosh(a), vvacosh)
-DEFINE_UNOP_FLOATVV(atanh, atanh(a), vvatanh)
+#ifdef SAPF_ACCELERATE
+	DEFINE_UNOP_FLOATVV(sin, sin(a), vvsin)
+	DEFINE_UNOP_FLOATVV(cos, cos(a), vvcos)
+	DEFINE_UNOP_FLOATVV2(sin1, sin(a * kTwoPi), Z b = kTwoPi; vDSP_vsmulD(const_cast<Z*>(aa), astride, &b, out, 1, n); vvsin(out, out, &n))
+	DEFINE_UNOP_FLOATVV2(cos1, cos(a * kTwoPi), Z b = kTwoPi; vDSP_vsmulD(const_cast<Z*>(aa), astride, &b, out, 1, n); vvcos(out, out, &n))
+	DEFINE_UNOP_FLOATVV(tan, tan(a), vvtan)
+	DEFINE_UNOP_FLOATVV(asin, asin(a), vvasin)
+	DEFINE_UNOP_FLOATVV(acos, acos(a), vvacos)
+	DEFINE_UNOP_FLOATVV(atan, atan(a), vvatan)
+	DEFINE_UNOP_FLOATVV(sinh, sinh(a), vvsinh)
+	DEFINE_UNOP_FLOATVV(cosh, cosh(a), vvcosh)
+	DEFINE_UNOP_FLOATVV(tanh, tanh(a), vvtanh)
+	DEFINE_UNOP_FLOATVV(asinh, asinh(a), vvasinh)
+	DEFINE_UNOP_FLOATVV(acosh, acosh(a), vvacosh)
+	DEFINE_UNOP_FLOATVV(atanh, atanh(a), vvatanh)
+#else
+	DEFINE_UNOP_FLOATVV(sin, sin(a), A.sin())
+	DEFINE_UNOP_FLOATVV(cos, cos(a), A.cos())
+	DEFINE_UNOP_FLOATVV(sin1, sin(a * kTwoPi), (kTwoPi * A).sin())
+	DEFINE_UNOP_FLOATVV(cos1, cos(a * kTwoPi), (kTwoPi * A).cos())
+	DEFINE_UNOP_FLOATVV(tan, tan(a), A.tan())
+	DEFINE_UNOP_FLOATVV(asin, asin(a), A.asin())
+	DEFINE_UNOP_FLOATVV(acos, acos(a), A.acos())
+	DEFINE_UNOP_FLOATVV(atan, atan(a), A.atan())
+	DEFINE_UNOP_FLOATVV(sinh, sinh(a), A.sinh())
+	DEFINE_UNOP_FLOATVV(cosh, cosh(a), A.cosh())
+	DEFINE_UNOP_FLOATVV(tanh, tanh(a), A.tanh())
+	DEFINE_UNOP_FLOATVV(asinh, asinh(a), A.asinh())
+	DEFINE_UNOP_FLOATVV(acosh, acosh(a), A.acosh())
+	DEFINE_UNOP_FLOATVV(atanh, atanh(a), A.atanh())
+#endif
 
 #ifdef _WIN32
 	DEFINE_UNOP_FLOAT(J0, _j0(a))
@@ -886,19 +960,36 @@ static void sc_clipv(int n, const Z* in, Z* out, Z a, Z b)
 	}
 }
 
-DEFINE_UNOP_FLOATVV2(inc, a+1, Z b = 1.; vDSP_vsaddD(const_cast<Z*>(aa), astride, &b, out, 1, n))
-DEFINE_UNOP_FLOATVV2(dec, a-1, Z b = -1.; vDSP_vsaddD(const_cast<Z*>(aa), astride, &b, out, 1, n))
-DEFINE_UNOP_FLOATVV2(half, a*.5, Z b = .5; vDSP_vsmulD(aa, astride, &b, out, 1, n))
-DEFINE_UNOP_FLOATVV2(twice, a*2., Z b = 2.; vDSP_vsmulD(const_cast<Z*>(aa), astride, &b, out, 1, n))
+#ifdef SAPF_ACCELERATE
+	DEFINE_UNOP_FLOATVV2(inc, a+1, Z b = 1.; vDSP_vsaddD(const_cast<Z*>(aa), astride, &b, out, 1, n))
+	DEFINE_UNOP_FLOATVV2(dec, a-1, Z b = -1.; vDSP_vsaddD(const_cast<Z*>(aa), astride, &b, out, 1, n))
+	DEFINE_UNOP_FLOATVV2(half, a*.5, Z b = .5; vDSP_vsmulD(aa, astride, &b, out, 1, n))
+	DEFINE_UNOP_FLOATVV2(twice, a*2., Z b = 2.; vDSP_vsmulD(const_cast<Z*>(aa), astride, &b, out, 1, n))
+#else
+	DEFINE_UNOP_FLOATVV(inc, a+1, A + 1)
+	DEFINE_UNOP_FLOATVV(dec, a-1, A - 1)
+	DEFINE_UNOP_FLOATVV(half, a*.5, A * .5)
+	DEFINE_UNOP_FLOATVV(twice, a*2., A * 2.)
+#endif
 
-
-DEFINE_UNOP_FLOATVV2(biuni, a*.5+.5, Z b = .5; vDSP_vsmulD(const_cast<Z*>(aa), astride, &b, out, 1, n); vDSP_vsaddD(out, 1, &b, out, 1, n))
-DEFINE_UNOP_FLOATVV2(unibi, a*2.-1., Z b = 2.; Z c = -1.; vDSP_vsmulD(aa, astride, &b, out, 1, n); vDSP_vsaddD(out, 1, &c, out, 1, n))
-DEFINE_UNOP_FLOATVV2(biunic, std::clamp(a,-1.,1.)*.5+.5, Z b = .5; sc_clipv(n, aa, out, -1., 1.); vDSP_vsmulD(out, astride, &b, out, 1, n); vDSP_vsaddD(out, 1, &b, out, 1, n))
-DEFINE_UNOP_FLOATVV2(unibic, std::clamp(a,0.,1.)*2.-1., Z b = 2.; Z c = -1.; sc_clipv(n, aa, out, 0., 1.); vDSP_vsmulD(out, astride, &b, out, 1, n); vDSP_vsaddD(out, 1, &c, out, 1, n))
+#ifdef SAPF_ACCELERATE
+	DEFINE_UNOP_FLOATVV2(biuni, a*.5+.5, Z b = .5; vDSP_vsmulD(const_cast<Z*>(aa), astride, &b, out, 1, n); vDSP_vsaddD(out, 1, &b, out, 1, n))
+	DEFINE_UNOP_FLOATVV2(unibi, a*2.-1., Z b = 2.; Z c = -1.; vDSP_vsmulD(aa, astride, &b, out, 1, n); vDSP_vsaddD(out, 1, &c, out, 1, n))
+	DEFINE_UNOP_FLOATVV2(biunic, std::clamp(a,-1.,1.)*.5+.5, Z b = .5; sc_clipv(n, aa, out, -1., 1.); vDSP_vsmulD(out, astride, &b, out, 1, n); vDSP_vsaddD(out, 1, &b, out, 1, n))
+	DEFINE_UNOP_FLOATVV2(unibic, std::clamp(a,0.,1.)*2.-1., Z b = 2.; Z c = -1.; sc_clipv(n, aa, out, 0., 1.); vDSP_vsmulD(out, astride, &b, out, 1, n); vDSP_vsaddD(out, 1, &c, out, 1, n))
+#else
+	DEFINE_UNOP_FLOATVV(biuni, a*.5+.5, A * .5 + .5)
+	DEFINE_UNOP_FLOATVV(unibi, a*2.-1., A * 2. - 1.)
+	DEFINE_UNOP_FLOATVV(biunic, std::clamp(a,-1.,1.)*.5+.5, A.min(1.).max(-1.) * .5 + .5)
+	DEFINE_UNOP_FLOATVV(unibic, std::clamp(a,0.,1.)*2.-1., A.min(1.).max(0.) * 2. - 1.)
+#endif
 DEFINE_UNOP_FLOAT(cmpl, 1.-a)
 
-DEFINE_UNOP_FLOATVV2(ampdb,     sc_ampdb(a), Z b = 1.; vDSP_vdbconD(const_cast<Z*>(aa), astride, &b, out, 1, n, 1))
+#ifdef SAPF_ACCELERATE
+	DEFINE_UNOP_FLOATVV2(ampdb, sc_ampdb(a), Z b = 1.; vDSP_vdbconD(const_cast<Z*>(aa), astride, &b, out, 1, n, 1))
+#else
+	DEFINE_UNOP_FLOATVV(ampdb, sc_ampdb(a), A.log10() * 20.)	
+#endif
 DEFINE_UNOP_FLOAT(dbamp,     sc_dbamp(a))
 
 DEFINE_UNOP_FLOAT(hzo,   sc_hzoct(a))
@@ -916,11 +1007,19 @@ DEFINE_UNOP_FLOAT(ratiocents, sc_ratiocents(a))
 DEFINE_UNOP_FLOAT(semiratio, sc_semiratio(a))
 DEFINE_UNOP_FLOAT(ratiosemi, sc_ratiosemi(a))
 
-DEFINE_UNOP_FLOATVV2(degrad, a*kDegToRad, Z b = kDegToRad; vDSP_vsmulD(aa, astride, &b, out, 1, n))
-DEFINE_UNOP_FLOATVV2(raddeg, a*kRadToDeg, Z b = kRadToDeg; vDSP_vsmulD(aa, astride, &b, out, 1, n))
-DEFINE_UNOP_FLOATVV2(minsec, a*kMinToSecs, Z b = kMinToSecs; vDSP_vsmulD(aa, astride, &b, out, 1, n))
-DEFINE_UNOP_FLOATVV2(secmin, a*kSecsToMin, Z b = kSecsToMin; vDSP_vsmulD(aa, astride, &b, out, 1, n))
-DEFINE_UNOP_FLOATVV2(bpmsec, kMinToSecs / a, Z b = kMinToSecs; vDSP_svdivD(&b, const_cast<double*>(aa), astride, out, 1, n))
+#ifdef SAPF_ACCELERATE
+	DEFINE_UNOP_FLOATVV2(degrad, a*kDegToRad, Z b = kDegToRad; vDSP_vsmulD(aa, astride, &b, out, 1, n))
+	DEFINE_UNOP_FLOATVV2(raddeg, a*kRadToDeg, Z b = kRadToDeg; vDSP_vsmulD(aa, astride, &b, out, 1, n))
+	DEFINE_UNOP_FLOATVV2(minsec, a*kMinToSecs, Z b = kMinToSecs; vDSP_vsmulD(aa, astride, &b, out, 1, n))
+	DEFINE_UNOP_FLOATVV2(secmin, a*kSecsToMin, Z b = kSecsToMin; vDSP_vsmulD(aa, astride, &b, out, 1, n))
+	DEFINE_UNOP_FLOATVV2(bpmsec, kMinToSecs / a, Z b = kMinToSecs; vDSP_svdivD(&b, const_cast<double*>(aa), astride, out, 1, n))
+#else
+	DEFINE_UNOP_FLOATVV(degrad, a*kDegToRad, A * kDegToRad)
+	DEFINE_UNOP_FLOATVV(raddeg, a*kRadToDeg, A * kRadToDeg)
+	DEFINE_UNOP_FLOATVV(minsec, a*kMinToSecs, A * kMinToSecs)
+	DEFINE_UNOP_FLOATVV(secmin, a*kSecsToMin, A * kSecsToMin)
+	DEFINE_UNOP_FLOATVV(bpmsec, kMinToSecs / a, kMinToSecs / A)	
+#endif
 
 DEFINE_UNOP_FLOAT(distort,  sc_distort(a))
 DEFINE_UNOP_FLOAT(softclip, sc_softclip(a))
@@ -949,30 +1048,6 @@ DEFINE_BINOP_FLOAT_STRING(cmp,  sc_cmp(a, b), sc_sgn(strcmp(a, b)))
 DEFINE_BINOP_FLOATVV1(copysign, copysign(a, b), vvcopysign(out, const_cast<Z*>(aa), bb, &n)) // bug in vForce.h requires const_cast
 DEFINE_BINOP_FLOATVV1(nextafter, nextafter(a, b), vvnextafter(out, const_cast<Z*>(aa), bb, &n)) // bug in vForce.h requires const_cast
 
-#ifndef SAPF_ACCELERATE
-
-	#if SAMPLE_IS_DOUBLE
-		typedef Eigen::Map<Eigen::ArrayXd, 0, Eigen::InnerStride<>> ZArr;
-	#else
-		typedef Eigen::Map<Eigen::ArrayXf, 0, Eigen::InnerStride<>> ZArr;
-	#endif
-
-	ZArr zarr(const Z *vec, int n, int stride) {
-		#if SAMPLE_IS_DOUBLE
-			return ZArr((double *)vec, n, Eigen::InnerStride<>(stride));
-		#else
-			return ZArr((float *)vec, n, Eigen::InnerStride<>(stride));
-		#endif
-	}
-
-	#define ZARR_OP(op, n, aa, astride, bb, bstride, out) \
-		do { \
-			const ZArr A = zarr(aa, n, astride); \
-			const ZArr B = zarr(bb, n, bstride); \
-			ZArr R = zarr(out, n, 1); \
-			R = op; \
-		} while (0)
-#endif
 
 // identity optimizations of basic operators.
 
@@ -988,7 +1063,7 @@ DEFINE_BINOP_FLOATVV1(nextafter, nextafter(a, b), vvnextafter(out, const_cast<Z*
 #ifdef SAPF_ACCELERATE
 					vDSP_vsaddD(const_cast<Z*>(bb), bstride, const_cast<Z*>(aa), out, 1, n);
 #else
-					ZARR_OP(A + B, n, aa, astride, bb, bstride, out);
+					ZARR_BINOP(A + B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 				}
 			} else if (bstride == 0 ) {
@@ -998,14 +1073,14 @@ DEFINE_BINOP_FLOATVV1(nextafter, nextafter(a, b), vvnextafter(out, const_cast<Z*
 #ifdef SAPF_ACCELERATE
 					vDSP_vsaddD(const_cast<Z*>(aa), astride, const_cast<Z*>(bb), out, 1, n);
 #else
-                    ZARR_OP(A + B, n, aa, astride, bb, bstride, out);
+                    ZARR_BINOP(A + B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 				}
 			} else {
 #ifdef SAPF_ACCELERATE
 				vDSP_vaddD(aa, astride, bb, bstride, out, 1, n);
 #else
-					ZARR_OP(A + B, n, aa, astride, bb, bstride, out);
+					ZARR_BINOP(A + B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 			}
         }
@@ -1054,7 +1129,7 @@ DEFINE_BINOP_FLOATVV1(nextafter, nextafter(a, b), vvnextafter(out, const_cast<Z*
 #ifdef SAPF_ACCELERATE
 					vDSP_vsaddD(const_cast<Z*>(bb), bstride, const_cast<Z*>(aa), out, 1, n);
 #else
-					ZARR_OP(A + B, n, aa, astride, bb, bstride, out);
+					ZARR_BINOP(A + B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 				}
 			} else if (bstride == 0 ) {
@@ -1065,14 +1140,14 @@ DEFINE_BINOP_FLOATVV1(nextafter, nextafter(a, b), vvnextafter(out, const_cast<Z*
 #ifdef SAPF_ACCELERATE
 					vDSP_vsaddD(const_cast<Z*>(aa), astride, const_cast<Z*>(bb), out, 1, n);
 #else
-					ZARR_OP(A + B, n, aa, astride, bb, bstride, out);
+					ZARR_BINOP(A + B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 				}
 			} else {
 #ifdef SAPF_ACCELERATE
 				vDSP_vaddD(aa, astride, bb, bstride, out, 1, n);
 #else
-				ZARR_OP(A + B, n, aa, astride, bb, bstride, out);
+				ZARR_BINOP(A + B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 			}
 		}
@@ -1117,13 +1192,13 @@ DEFINE_BINOP_FLOATVV1(nextafter, nextafter(a, b), vvnextafter(out, const_cast<Z*
 #ifdef SAPF_ACCELERATE
 				vDSP_vnegD(const_cast<Z*>(bb), bstride, out, 1, n);
 #else
-				ZARR_OP(A - B, n, aa, astride, bb, bstride, out);
+				ZARR_BINOP(A - B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 				if (*aa != 0.) {
 #ifdef SAPF_ACCELERATE
 					vDSP_vsaddD(const_cast<Z*>(out), 1, const_cast<Z*>(aa), out, 1, n);
 #else
-					ZARR_OP(A - B, n, aa, astride, bb, bstride, out);
+					ZARR_BINOP(A - B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 				}
 			} else if (bstride == 0 ) {
@@ -1133,14 +1208,14 @@ DEFINE_BINOP_FLOATVV1(nextafter, nextafter(a, b), vvnextafter(out, const_cast<Z*
 #ifdef SAPF_ACCELERATE
 					vDSP_vsaddD(const_cast<Z*>(out), 1, &b, out, 1, n);
 #else
-					ZARR_OP(A - B, n, aa, astride, bb, bstride, out);
+					ZARR_BINOP(A - B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 				}
 			} else {
 #ifdef SAPF_ACCELERATE
 				vDSP_vsubD(aa, astride, bb, bstride, out, 1, n);
 #else
-				ZARR_OP(A - B, n, aa, astride, bb, bstride, out);
+				ZARR_BINOP(A - B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 			}
 		}
@@ -1191,7 +1266,7 @@ DEFINE_BINOP_FLOATVV1(nextafter, nextafter(a, b), vvnextafter(out, const_cast<Z*
 #ifdef SAPF_ACCELERATE
 					vDSP_vsmulD(bb, bstride, aa, out, 1, n);
 #else
-					ZARR_OP(A * B, n, aa, astride, bb, bstride, out);
+					ZARR_BINOP(A * B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 				}
 			} else if (bstride == 0) {
@@ -1203,14 +1278,14 @@ DEFINE_BINOP_FLOATVV1(nextafter, nextafter(a, b), vvnextafter(out, const_cast<Z*
 #ifdef SAPF_ACCELERATE
 					vDSP_vsmulD(aa, astride, bb, out, 1, n);
 #else
-                    ZARR_OP(A * B, n, aa, astride, bb, bstride, out);
+                    ZARR_BINOP(A * B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 				}
 			} else {
 #ifdef SAPF_ACCELERATE
 				vDSP_vmulD(aa, astride, bb, bstride, out, 1, n);
 #else
-				ZARR_OP(A * B, n, aa, astride, bb, bstride, out);
+				ZARR_BINOP(A * B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 			}
 		}
@@ -1278,14 +1353,14 @@ DEFINE_BINOP_FLOATVV1(nextafter, nextafter(a, b), vvnextafter(out, const_cast<Z*
 #ifdef SAPF_ACCELERATE
 					vDSP_vsmulD(const_cast<Z*>(aa), astride, &rb, out, 1, n);
 #else
-                    ZARR_OP(A / B, n, aa, astride, bb, bstride, out);
+                    ZARR_BINOP(A / B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 				}
 			} else {
 #ifdef SAPF_ACCELERATE
 				vDSP_vdivD(const_cast<Z*>(bb), bstride, const_cast<Z*>(aa), astride, out, 1, n);
 #else
-                 ZARR_OP(A / B, n, aa, astride, bb, bstride, out);
+                 ZARR_BINOP(A / B, n, aa, astride, bb, bstride, out);
 #endif // SAPF_ACCELERATE
 			}
 		}
@@ -1425,7 +1500,7 @@ void AddMathOps()
 	#else
 		DEF(isascii, "return whether a value is ASCII")
 	#endif
-
+	
 
 	DEF(tolower, "convert an ASCII character value to lower case.")
 	DEF(toupper, "convert an ASCII character value to upper case.")
