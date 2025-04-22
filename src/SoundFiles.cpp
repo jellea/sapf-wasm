@@ -221,10 +221,10 @@ void makeRecordingPath(Arg filename, char* path, int len)
 				tempDir = getenv("TMP");
 			if (!tempDir || strlen(tempDir)==0)
 				tempDir = ".";
-			snprintf(path, len, "%s\\sapf-%s-%04d.wav", tempDir, gSessionTime, count);
 		#else
-			snprintf(path, len, "/tmp/sapf-%s-%04d.wav", gSessionTime, count);
+			const char* tempDir = "/tmp";
 		#endif
+		snprintf(path, len, "%s/sapf-%s-%04d.wav", tempDir, gSessionTime, count);
 
 	}
 }
