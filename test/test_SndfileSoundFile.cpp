@@ -86,7 +86,8 @@ TEST_CASE("SndfileSoundFile writing tests") {
     {
 		std::valarray<float> buf(0., numChannels * bufferSize);
         PortableBuffers bufs{1};
-		const auto sndfile = SndfileSoundFile::create(testFileName.c_str(), numChannels, sampleRate, 0., true);
+		const auto sndfile = SndfileSoundFile::create(testFileName.c_str(), numChannels,
+		    sampleRate, 0., false);
 		bufs.setNumChannels(0, numChannels);
 		bufs.setData(0, &buf[0]);
 		bufs.setSize(0, bufferSize * sizeof(float));

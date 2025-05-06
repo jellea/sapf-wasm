@@ -39,7 +39,8 @@ if not using Nix, you will need to install dependencies manually instead of the 
 for installing dependencies, you can refer to the CI scripts in this repo:
 
 - [install-debian-deps.sh](.github/scripts/install-debian-deps.sh) (Debian, Ubuntu, Mint, etc.)
-- [install-macos-deps.sh](.github/scripts/install-macos-deps.sh) (macOS with Homebrew)
+- [install-macos-native=deps.sh](.github/scripts/install-macos-native-deps.sh) (macOS with Homebrew, for builds using native macOS libraries)
+- [install-macos-cross-platform-deps.sh](.github/scripts/install-macos-cross-platform-deps.sh) (macOS with Homebrew, for builds using cross platform libraries)
 
 ## running tests
 Tests are written using doctest (which is obtained via a wrap) and located in the `tests` folder.

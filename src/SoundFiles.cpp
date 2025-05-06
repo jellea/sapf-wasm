@@ -182,7 +182,11 @@ void sfread(Thread& th, Arg filename, int64_t offset, int64_t frames)
 {
 	const char* path = ((String*)filename.o())->s;
 
+#ifdef SAPF_AUDIOTOOLBOX
+	std::unique_ptr<SoundFile> soundFile = SoundFile::open(path, th.rate.sampleRate);
+#else
 	std::unique_ptr<SoundFile> soundFile = SoundFile::open(path);
+#endif
 
 	if(soundFile != nullptr) {
 		SFReader* sfr = new SFReader(std::move(soundFile), -1);
@@ -190,10 +194,17 @@ void sfread(Thread& th, Arg filename, int64_t offset, int64_t frames)
 	}
 }
 
+#ifdef SAPF_AUDIOTOOLBOX
 std::unique_ptr<SoundFile> sfcreate(Thread& th, const char* path, int numChannels, double fileSampleRate, bool interleaved)
 {
 	return SoundFile::create(path, numChannels, th.rate.sampleRate, fileSampleRate, interleaved);
 }
+#else
+std::unique_ptr<SoundFile> sfcreate(Thread& th, const char* path, int numChannels, double fileSampleRate, bool interleaved, bool async)
+{
+	return SoundFile::create(path, numChannels, th.rate.sampleRate, fileSampleRate, async);
+}
+#endif
 
 std::atomic<int32_t> gFileCount = 0;
 
@@ -268,8 +279,12 @@ void sfwrite(Thread& th, V& v, Arg filename, bool openIt)
 	
 	makeRecordingPath(filename, path, 1024);
 
-	
-	std::unique_ptr<SoundFile> soundFile = sfcreate(th, path, numChannels, 0., true);
+
+	#ifdef SAPF_AUDIOTOOLBOX
+		std::unique_ptr<SoundFile> soundFile = sfcreate(th, path, numChannels, 0., true);
+	#else
+		std::unique_ptr<SoundFile> soundFile = sfcreate(th, path, numChannels, 0., true, false);
+	#endif
 	if (!soundFile) return;
 	
 	std::valarray<float> buf(0., numChannels * kBufSize);
@@ -292,7 +307,7 @@ void sfwrite(Thread& th, V& v, Arg filename, bool openIt)
 			minn = std::min(n, minn);
 		}
 
-		bufs.setSize(0, minn * sizeof(float));
+		bufs.setSize(0, numChannels * minn * sizeof(float));
 		// TODO: move into a SoundFile method
 #ifdef SAPF_AUDIOTOOLBOX
 		OSStatus err = ExtAudioFileWrite(soundFile->mXAF, minn, bufs.abl);

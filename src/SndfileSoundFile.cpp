@@ -1,15 +1,22 @@
 #ifndef SAPF_AUDIOTOOLBOX
 #include "SndfileSoundFile.hpp"
+#include "SoundFiles.hpp"
+#include <memory>
 
-SndfileSoundFile::SndfileSoundFile(SNDFILE *inSndfile, int inNumChannels)
-	: mSndfile(inSndfile), mNumChannels(inNumChannels)
-{}
+
+SndfileSoundFile::SndfileSoundFile(std::string path, std::unique_ptr<AsyncAudioFileWriter> writer, SNDFILE *inSndfile,
+	const int inNumChannels) :
+	mPath{std::move(path)}, mWriter{std::move(writer)},
+	mSndfile{inSndfile}, mNumChannels{inNumChannels} {
+}
 	
 SndfileSoundFile::~SndfileSoundFile() {
-	sf_close(this->mSndfile);
+	if (this->mSndfile) {
+		sf_close(this->mSndfile);
+	}
 }
 
-uint32_t SndfileSoundFile::numChannels() {
+uint32_t SndfileSoundFile::numChannels() const {
 	return this->mNumChannels;
 }
 
@@ -36,12 +43,15 @@ int SndfileSoundFile::pull(uint32_t *framesRead, PortableBuffers& buffers) {
 	return result;
 }
 
-void SndfileSoundFile::write(const int numFrames, const PortableBuffers& bufs)
-{
+void SndfileSoundFile::write(const int numFrames, const PortableBuffers& bufs) const {
 	if (const auto written{sf_write_float(mSndfile, (const float*) bufs.buffers[0].data, numFrames * bufs.buffers[0].numChannels)}; written <= 0) {
 		const auto error{sf_strerror(mSndfile)};
 		printf("failed to write audio data to file - %s\n", error);
 	}
+}
+
+void SndfileSoundFile::writeAsync(const RtBuffers& buffers, const unsigned int nBufferFrames) const {
+	mWriter->writeAsync(buffers, nBufferFrames);
 }
 
 std::unique_ptr<SndfileSoundFile> SndfileSoundFile::open(const char *path) {
@@ -62,29 +72,36 @@ std::unique_ptr<SndfileSoundFile> SndfileSoundFile::open(const char *path) {
 		sf_close(sndfile);
 		return nullptr;
 	}
-		
-	return std::make_unique<SndfileSoundFile>(sndfile, numChannels);
+
+	// TODO: to be implemented in https://github.com/chairbender/sapf/pull/8
+	return nullptr;
 }
 
 // NOTE: ATTOW, interleaved is always passed as true, and
 //  the fileSampleRate is always passed as 0, so the thread sample rate is always used.
 //  (>sf / >sfo doesn't even provide a way to specify the sample rate)
-std::unique_ptr<SndfileSoundFile> SndfileSoundFile::create(const char *path, int numChannels, double threadSampleRate, double fileSampleRate, bool interleaved) {
+std::unique_ptr<SndfileSoundFile> SndfileSoundFile::create(const char *path, const int numChannels,
+                                                           const double threadSampleRate, double fileSampleRate, const bool async) {
 	if (fileSampleRate == 0.)
 		fileSampleRate = threadSampleRate;
 
-	SF_INFO sfinfo;
-	sfinfo.channels = numChannels;
-	sfinfo.samplerate = fileSampleRate;
-	sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
+	std::unique_ptr<AsyncAudioFileWriter> writer;
+	SNDFILE *sndfile = nullptr;
+	if (async) {
+		writer = std::make_unique<AsyncAudioFileWriter>(path, fileSampleRate, numChannels);
+	} else {
+		SF_INFO sfinfo{
+			.samplerate = static_cast<int>(fileSampleRate),
+			.channels = numChannels,
+			.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT};
+		sndfile = sf_open(path, SFM_WRITE, &sfinfo);
+		if (!sndfile) {
+			const auto error{sf_strerror(sndfile)};
+			printf("failed to open %s: %s\n", path, error);
+			throw errNotFound;
+		}
+	}
 
-	const auto sndfile{sf_open(path, SFM_WRITE, &sfinfo)};
-    if (!sndfile) {
-		const auto error{sf_strerror(sndfile)};
-        printf("failed to open %s: %s\n", path, error);
-        throw errNotFound;
-    }
-
-	return std::make_unique<SndfileSoundFile>(sndfile, numChannels);
+	return std::make_unique<SndfileSoundFile>(path, std::move(writer), sndfile, numChannels);
 }
 #endif // SAPF_AUDIOTOOLBOX
