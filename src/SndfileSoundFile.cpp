@@ -6,7 +6,6 @@
 #include "SoundFiles.hpp"
 
 using Resampler = r8b::CDSPResampler;
-using namespace std;
 
 // de-interleave audio data from interleaved format to channel buffers
 void SndfileSoundFile::deInterleaveAudio(const double *const interleavedData, double *const channelBuffer,
@@ -27,7 +26,7 @@ std::vector<std::unique_ptr<r8b::CDSPResampler> > SndfileSoundFile::initResample
 	std::vector<std::unique_ptr<r8b::CDSPResampler> > resamplers;
 	if (std::abs(fileSampleRate - threadSampleRate) > 1e-9) {
 		for (int i = 0; i < numChannels; ++i) {
-			resamplers.emplace_back(make_unique<Resampler>(fileSampleRate, threadSampleRate, resamplerInputBufLen));
+			resamplers.emplace_back(std::make_unique<Resampler>(fileSampleRate, threadSampleRate, resamplerInputBufLen));
 		}
 	}
 	return resamplers;
@@ -76,7 +75,7 @@ uint32_t SndfileSoundFile::numChannels() const {
 void SndfileSoundFile::readUntilResamplerOutput(double* const interleaved) {
 	int framesReadFromFile{0};
 	while (mResampleSamplesBeforeOutput > 0) {
-		const auto framesToRead = min(mResamplerInputBufLen, mResampleSamplesBeforeOutput);
+		const auto framesToRead = std::min(mResamplerInputBufLen, mResampleSamplesBeforeOutput);
 		framesReadFromFile = readFramesFromFile(
 			this->mSndfile,
 			interleaved,
@@ -162,7 +161,7 @@ uint32_t SndfileSoundFile::readAndResample(PortableBuffers &buffers, const int r
 // is needed to consume the "tail" of the resampler (since it uses lookahead)
 // Returns number of samples output.
 uint32_t SndfileSoundFile::resampleTail(uint32_t framesAlreadyOutput, PortableBuffers &buffers, const int requestedOutputFrames) {
-	const int framesToOutput = min(static_cast<int>(mExpectedTotalFramesOutput - mTotalFramesOutput),
+	const int framesToOutput = std::min(static_cast<int>(mExpectedTotalFramesOutput - mTotalFramesOutput),
 	                               requestedOutputFrames - static_cast<int>(framesAlreadyOutput));
 	const int framesToInput = static_cast<int>(static_cast<double>(framesToOutput) / mDestToSrcSampleRateRatio);
 
@@ -228,7 +227,7 @@ void SndfileSoundFile::writeAsync(const RtBuffers& buffers, const unsigned int n
 	mWriter->writeAsync(buffers, nBufferFrames);
 }
 
-unique_ptr<SndfileSoundFile> SndfileSoundFile::open(const char *path, const double threadSampleRate, const int maxBufLen) {
+std::unique_ptr<SndfileSoundFile> SndfileSoundFile::open(const char *path, const double threadSampleRate, const int maxBufLen) {
 	SNDFILE *sndfile = nullptr;
 	SF_INFO sfinfo = {0};
 
@@ -247,13 +246,13 @@ unique_ptr<SndfileSoundFile> SndfileSoundFile::open(const char *path, const doub
 		return nullptr;
 	}
 
-	return make_unique<SndfileSoundFile>(path, nullptr, sndfile, numChannels, sfinfo.samplerate, threadSampleRate,
+	return std::make_unique<SndfileSoundFile>(path, nullptr, sndfile, numChannels, sfinfo.samplerate, threadSampleRate,
 	                                     maxBufLen);
 }
 
 // NOTE: ATTOW, the fileSampleRate is always passed as 0, so the thread sample rate is always used.
 //  (>sf / >sfo doesn't even provide a way to specify the sample rate)
-unique_ptr<SndfileSoundFile> SndfileSoundFile::create(const char *path, const int numChannels,
+std::unique_ptr<SndfileSoundFile> SndfileSoundFile::create(const char *path, const int numChannels,
                                                       const double threadSampleRate, double fileSampleRate,
                                                       const bool async) {
 	if (fileSampleRate == 0.)
@@ -276,6 +275,6 @@ unique_ptr<SndfileSoundFile> SndfileSoundFile::create(const char *path, const in
 		}
 	}
 
-	return make_unique<SndfileSoundFile>(path, std::move(writer), sndfile, numChannels, fileSampleRate, threadSampleRate, 0);
+	return std::make_unique<SndfileSoundFile>(path, std::move(writer), sndfile, numChannels, fileSampleRate, threadSampleRate, 0);
 }
 #endif // SAPF_AUDIOTOOLBOX
