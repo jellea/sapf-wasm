@@ -167,7 +167,8 @@ executable(
   include_directories: [include_directories('include')],
   dependencies: deps,
   cpp_args : cpp_args + (get_option('buildtype').startswith('debug') ? [] : ['-march=native']),
-  link_args : link_args
+  link_args : link_args,
+  install: true
 )
 
 # The below builds target specific architectures. Because this program uses

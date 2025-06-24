@@ -13,10 +13,10 @@
           let
             system = prev.stdenv.hostPlatform.system;
           in {
-            # sapf = TODO;
             libdispatch = final.callPackage ./nix/libdispatch/default.nix {
               stdenv = (llvmPackages final).stdenv;
             };
+            sapf = final.callPackage ./default.nix {};
           };
       } //
       (flake-utils.lib.eachDefaultSystem (system:
@@ -25,21 +25,23 @@
             inherit system;
             overlays = [self.overlays.default];
           };
-          # stdenv = (llvmPackages pkgs).stdenv;
         in rec {
-          # packages.default = pkgs.sapf;
-
+          packages.default = pkgs.sapf;
+          
           devShell = pkgs.mkShell.override {
             # inherit stdenv;
           } {
             buildInputs = with pkgs; [
-              fftw
               (llvmPackages pkgs).lldb
-              libedit
-              libsndfile
+              doctest
               meson
               ninja
               pkg-config
+
+              eigen
+              fftw
+              libedit
+              libsndfile
               rtaudio_6
               xsimd
             ];
