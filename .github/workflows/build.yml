@@ -41,7 +41,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: meson-build-log-${{ runner.os }}.txt
-          path: build/meson-logs/meson-log.tx
+          path: build/meson-logs/meson-log.txt
   build:
     strategy:
       fail-fast: false
