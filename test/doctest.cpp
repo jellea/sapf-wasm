@@ -15,4 +15,8 @@
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "doctest.h"
+#if defined(SAPF_DOCTEST_H)
+#include SAPF_DOCTEST_H
+#else
+#include <doctest.h>
+#endif

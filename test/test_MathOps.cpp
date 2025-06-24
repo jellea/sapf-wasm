@@ -15,7 +15,11 @@
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "Object.hpp"
-#include "doctest.h"
+#if defined(SAPF_DOCTEST_H)
+#include SAPF_DOCTEST_H
+#else
+#include <doctest.h>
+#endif
 #include <array>
 #include "ZArr.hpp"
 

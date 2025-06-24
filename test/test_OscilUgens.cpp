@@ -17,7 +17,11 @@
 #include "dsp.hpp"
 #include "Object.hpp"
 #include "VM.hpp"
-#include "doctest.h"
+#if defined(SAPF_DOCTEST_H)
+#include SAPF_DOCTEST_H
+#else
+#include <doctest.h>
+#endif
 #include "ArrHelpers.hpp"
 #include "OscilUGens.hpp"
 
