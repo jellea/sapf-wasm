@@ -17,8 +17,7 @@
 #include "VM.hpp"
 
 void playWithPlayer(Thread& th, V& v);
-void recordWithPlayer(Thread& th, V& v, Arg filename);
+// void recordWithPlayer(Thread& th, V& v, Arg filename);
 
 void stopPlaying();
 void stopPlayingIfDone();
-

@@ -1,61 +1,96 @@
-#pragma once
+// #pragma once
 
-#ifndef SAPF_AUDIOTOOLBOX
-#include "ringbuffer.hpp"
-#include "Object.hpp"
-#include "Buffers.hpp"
-#include <sndfile.h>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
+// #include <emscripten.h>
+// #include <emscripten/bind.h>
 
-/*!
- * A cross-platform alternative to ExtAudioFileWriteAsync.
- * This is NOT thread safe - only one thread should be writing to a given
- * file via this object.
- * Writes the data from RtBuffers to file (one buffer per channel).
- * Use writeAsync to capture the current values in the buffers. The values are stored in a
- * ring buffer and are asynchronously written out to the file.
- * Upon destruction, it blocks until the buffer is flushed.
- * The file is always written in wav format as floats.
- */
-constexpr size_t ringBufferSize{1024 * 1024};
-// max number of values to write per write call.
-constexpr size_t maxChunkSize{4096};
-class AsyncAudioFileWriter {
-private:
-    SNDFILE* mFile;
-    std::thread mWriterThread;
-    int mNumChannels;
+// #include <atomic>
+// #include <condition_variable>
+// #include <cstring>
+// #include <mutex>
+// #include <thread>
+// #include <vector>
 
-    // number of values per each chunk that gets written to the ring buffer + written to disk.
-    // it has to be a multiple of the number of channels as libsndfile won't allow
-    // writing a partial segment, but we don't want it to be greater than maxChunkSize
-    size_t mChunkSize;
+// constexpr size_t ringBufferSize{1024 * 1024};
+// constexpr size_t maxChunkSize{4096};
 
-    // uses a ptr so this doesn't get allocated on the stack
-    std::unique_ptr<jnk0le::Ringbuffer<float, ringBufferSize>> mRingBuffer;
-    // a chunk of interleaved audio data from the incoming write request,
-    // waiting to be written to the ring buffer.
-    std::vector<float> mRingWriteBuffer;
-    // a chunk of interleaved audio data just removed from the ring buffer,
-    // waiting to be written to file
-    std::vector<float> mWriteBuffer;
+// template <typename T, size_t N>
+// class RingBuffer {
+//  public:
+//   bool write(const T* data, size_t count) {
+//     if (write_available() < count) return false;
 
-    std::mutex mBufferMutex;
-    std::condition_variable mDataAvailableCondition;
-    std::condition_variable mSpaceAvailableCondition;
+//     for (size_t i = 0; i < count; ++i) {
+//       buffer[(writePos + i) % N] = data[i];
+//     }
+//     writePos = (writePos + count) % N;
+//     return true;
+//   }
 
-    bool mRunning;
+//   bool read(T* data, size_t count) {
+//     if (read_available() < count) return false;
 
-public:
-    AsyncAudioFileWriter(const std::string& path, int samplerate, int numChannels);
-    ~AsyncAudioFileWriter();
-    // capture the current data in the buffers and submit it to be written asynchronously.
-    void writeAsync(const RtBuffers& buffers, unsigned int nBufferFrames);
+//     for (size_t i = 0; i < count; ++i) {
+//       data[i] = buffer[(readPos + i) % N];
+//     }
+//     readPos = (readPos + count) % N;
+//     return true;
+//   }
 
-private:
-    void writeLoop();
-};
+//   size_t write_available() const {
+//     if (writePos >= readPos) {
+//       return N - writePos + readPos;
+//     }
+//     return readPos - writePos;
+//   }
 
-#endif
+//   size_t read_available() const {
+//     if (writePos >= readPos) {
+//       return writePos - readPos;
+//     }
+//     return N - readPos + writePos;
+//   }
+
+//  private:
+//   T buffer[N];
+//   size_t readPos = 0;
+//   size_t writePos = 0;
+// };
+
+// class AsyncAudioFileWriter {
+//  public:
+//   AsyncAudioFileWriter(int samplerate, int numChannels);
+//   ~AsyncAudioFileWriter();
+
+//   // Changed to use vector reference instead of raw pointer
+//   void writeAsync(const std::vector<float>& data, size_t frames);
+//   void finalize();
+
+//  private:
+//   void writeLoop();
+//   void generateAndDownloadWAV();
+
+//   int mSampleRate;
+//   int mNumChannels;
+//   size_t mChunkSize;
+
+//   RingBuffer<float, ringBufferSize> mRingBuffer;
+//   std::vector<float> mRingWriteBuffer;
+//   std::vector<float> mWriteBuffer;
+
+//   std::mutex mBufferMutex;
+//   std::condition_variable mDataAvailableCondition;
+//   std::condition_variable mSpaceAvailableCondition;
+
+//   std::atomic<bool> mRunning;
+//   std::thread mWriterThread;
+// };
+
+// // Binding declarations
+// EMSCRIPTEN_BINDINGS(AsyncAudioFileWriter) {
+//   emscripten::class_<AsyncAudioFileWriter>("AsyncAudioFileWriter")
+//       .constructor<int, int>()
+//       .function("writeAsync", &AsyncAudioFileWriter::writeAsync)
+//       .function("finalize", &AsyncAudioFileWriter::finalize);
+
+//   emscripten::register_vector<float>("FloatVector");
+// }

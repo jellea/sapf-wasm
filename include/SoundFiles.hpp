@@ -17,10 +17,9 @@
 #ifndef __taggeddoubles__SoundFiles__
 #define __taggeddoubles__SoundFiles__
 
-#include "VM.hpp"
-
 #include "AudioToolboxBuffers.hpp"
 #include "PortableBuffers.hpp"
+#include "VM.hpp"
 #ifdef SAPF_AUDIOTOOLBOX
 typedef AudioToolboxBuffers AudioBuffers;
 #else
@@ -28,11 +27,10 @@ typedef PortableBuffers AudioBuffers;
 #endif
 
 #include "AudioToolboxSoundFile.hpp"
-#include "SndfileSoundFile.hpp"
 #ifdef SAPF_AUDIOTOOLBOX
 typedef AudioToolboxSoundFile SoundFile;
 #else
-typedef SndfileSoundFile SoundFile;
+// typedef SndfileSoundFile SoundFile;
 #endif
 
 const int kMaxSFChannels = 1024;
@@ -41,10 +39,15 @@ const int kBufSize = 1024;
 void makeRecordingPath(Arg filename, char* path, int len);
 
 #ifdef SAPF_AUDIOTOOLBOX
-std::unique_ptr<SoundFile> sfcreate(Thread& th, const char* path, int numChannels, double fileSampleRate, bool interleaved);
+std::unique_ptr<SoundFile> sfcreate(Thread& th, const char* path,
+                                    int numChannels, double fileSampleRate,
+                                    bool interleaved);
 #else
-// async indicates whether async writing should be supported, or only synchronous writing. They are mutually exclusive.
-std::unique_ptr<SoundFile> sfcreate(Thread& th, const char* path, int numChannels, double fileSampleRate, bool interleaved, bool async);
+// async indicates whether async writing should be supported, or only
+// synchronous writing. They are mutually exclusive.
+// std::unique_ptr<SoundFile> sfcreate(Thread& th, const char* path,
+//                                     int numChannels, double fileSampleRate,
+//                                     bool interleaved, bool async);
 #endif
 void sfwrite(Thread& th, V& v, Arg filename, bool openIt);
 void sfread(Thread& th, Arg filename, int64_t offset, int64_t frames);

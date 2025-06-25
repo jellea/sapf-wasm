@@ -1057,41 +1057,6 @@ nyq .9 * = nyq90   ;; 90 percent of nyquist
 
 ;;;;;;;
 "\\n*** events ***" helpLine
-	
-{
-	;; base event. contains common default arguments for instruments. 
-	;; a particular instrument will use only some of the arguments.
-	
-	:freq 	0 ohz 	; frequency in Hertz
-	:duty	.5		; duty cycle. 0 to 1 cycles
-	:phase	0		; phase. 0 to 1 cycles
-	
-	;; timing
-	:dur	1		; beats
-	:dt		\o[ o.dur ]		; delta time to next event in beats. default is to return the duration
-	:sus	\o[ o.dur o.legato * o.susmin | ]	; the time to sustain a note, in beats.
-	:legato	1		; proportion of the note duration to sustain a note.
-	:susmin	0		; minimum time to sustain a note, in beats.
-	
-	:pan	0		; -1 to 1
-	:harms	8		; number of harmonics. determines the filter cutoff frequency
-	:rq		.25		; 1/Q
-	:c		1		; carrier frequency multiplier.
-	:m		1		; modulator frequency multiplier.
-	:mx		1		; modulation index in radians.
-	:fb		0		; amplitude of feedback modulation.
-	:wt		sawTbl	; wave table.
-	
-	;; amplitude envelope
-	:db		-20		; decibels
-	:amp	\o[ o.db dbamp ]	; amplitude
-	:adsr	[2m 2 0 .1]	; an array containing [attack-time decay-time sustain-level release-time]
-	:env	\o[ o.adsr o.amp o.sus 1 adsr ]	; creates an adsr envelope
-	
-	:out	\o[ o `osc-syn !e ]	; extracts the event fields and passes them to osc-syn
-} = ev-base
-
-"ev-base - a form containing the basic low level information for a music event." helpLine
 
 ; a simple sound for testing
 {
