@@ -25,7 +25,7 @@
     }
 
     const stop_audio = () => {
-      Module.stopAudio();
+      ctx.suspend();
     }
 
     const submitbtn = document.getElementById("replbtn");

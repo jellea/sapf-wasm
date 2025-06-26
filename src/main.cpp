@@ -58,7 +58,8 @@ static void replLoop(Thread th) {
   exit(0);
 }
 
-static char* inString;
+EM_JS(void, InitHtmlUi, (EMSCRIPTEN_WEBAUDIO_T audioContext),
+      { window.ctx = audioContext; });
 
 void AudioWorkletProcessorCreated(EMSCRIPTEN_WEBAUDIO_T audioContext,
                                   bool success, void* userData) {
@@ -74,6 +75,8 @@ void AudioWorkletProcessorCreated(EMSCRIPTEN_WEBAUDIO_T audioContext,
   post("code eval = %s\n", inString);
 
   compileSmth(th, inString);
+
+  InitHtmlUi(audioContext);
 }
 
 void AudioThreadInitialized(EMSCRIPTEN_WEBAUDIO_T audioContext, bool success,
@@ -98,7 +101,7 @@ static void sendToRepl(std::string code) {
       &AudioThreadInitialized, strCopy);
 }
 
-static void stopAudio() { context::suspend(); }
+static void stopAudio() {}
 
 int main(int argc, const char* argv[]) {
   post("------------------------------------------------\n");
