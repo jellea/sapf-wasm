@@ -13,55 +13,26 @@
   <div style="display: flex; flex-direction: row;">
     <input type="text" id="replinput" style="width: 100%;" value="800 0 sinosc .3 * play">
     <input type="submit" id="replbtn">
+    <button id="stopbtn">Stop</button>
   </div>
 
   <script>
-    let audioContext = null;
-
-    async function createMyAudioProcessor() {
-      if (!audioContext) {
-        try {
-          audioContext = new AudioContext({
-            sampleRate: 96000,
-            latencyHint: 'interactive'
-          });
-          await audioContext.resume();
-          await audioContext.audioWorklet.addModule("./audio-processor.js");
-        } catch (e) {
-          return null;
-        }
-      }
-
-      return new AudioWorkletNode(audioContext, "sapf-processor.js");
-    }
 
     const send_to_repl = () => {
       console.log(replinput.value)
 
-      await = createMyAudioProcessor()
-
-
-      // if (!audioContext) {
-      //   audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-      //   await audioContext.audioWorklet.addModule('./audio-processor.js');
-      //   const workletNode = new AudioWorkletNode(audioContext, 'audio-processor');
-      //   workletNode.port.onmessage = (e) => {
-      //     if (e.data.type === 'request') {
-      //       const buffer = new Float32Array(e.data.length);
-      //       wasmInstance.exports.fillAudioBuffer(buffer.length, buffer);
-      //       workletNode.port.postMessage({ type: 'buffer', buffer }, [buffer.buffer]);
-      //     }
-      //   };
-
-      // workletNode.connect(audioContext.destination);
-      // }
-
       Module.sendToRepl(replinput.value);
+    }
+
+    const stop_audio = () => {
+      Module.stopAudio();
     }
 
     const submitbtn = document.getElementById("replbtn");
     submitbtn.addEventListener("click", send_to_repl);
+
+    const stopbtn = document.getElementById("stopbtn");
+    stopbtn.addEventListener("click", stop_audio);
 
     var outputElement = document.getElementById("output");
     var Module = {

@@ -1,3 +1,5 @@
+#pragma once
+
 //    SAPF - Sound As Pure Form
 //    Copyright (C) 2019 James McCartney
 //
@@ -13,6 +15,8 @@
 //
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+#include <emscripten/webaudio.h>
 
 #include "VM.hpp"
 

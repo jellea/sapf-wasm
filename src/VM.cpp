@@ -211,7 +211,6 @@ void compileSmth(Thread th, char* inString) {
       if (th.compile(inString, compiledFun, true)) {
         // EVAL
         compiledFun->runREPL(th);
-        post("playing sound!\n");
       }
     }
   } catch (V& v) {

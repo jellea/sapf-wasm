@@ -56,24 +56,10 @@ class WasmBuffers {
 
   uint32_t size(int channel) const { return theSize; }
 
-  emscripten::val getData(int index) const {
-    float* ptr = data(index);  // Your original function
-    return emscripten::val(emscripten::typed_memory_view(size(index), ptr));
-  }
-
   float* out;
   uint32_t theCount;
   uint32_t theSize;
 };
 
-typedef WasmBuffers RtBuffers;
-
-EMSCRIPTEN_BINDINGS(WasmBuffers) {
-  emscripten::class_<WasmBuffers>("WasmBuffers")
-      .constructor<uint32_t, uint32_t>()
-      .constructor<float*, uint32_t, uint32_t>()
-      .function("count", &WasmBuffers::count)
-      .function("data", &WasmBuffers::getData)
-      .function("size", &WasmBuffers::size);
-}
+typedef WasmBuffers Buffers;
 #endif
